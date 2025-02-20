@@ -1,10 +1,9 @@
 import requests
 import time
-import webbrowser
 
 # Etherscan API Anahtarını Buraya Gir
 ETHERSCAN_API_KEY = "YOUR_ETHERSCAN_API_KEY"
-BASE_URL = "https://api.etherscan.io/api"
+BASE_URL = "https://api.etherscan.io/api"  # HTTPS bağlantısı burada belirtiliyor
 
 # Yeni oluşturulmuş tokenleri almak için fonksiyon
 def get_new_tokens():
@@ -54,13 +53,38 @@ def find_valid_tokens():
     
     return valid_tokens
 
+# HTML dosyasını oluşturmak için fonksiyon
+def generate_html(tokens):
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Valid Tokens List</title>
+    </head>
+    <body>
+        <h1>Valid Tokens</h1>
+        <ul>
+    """
+    for token in tokens:
+        html_content += f"<li><a href='https://etherscan.io/token/{token}' target='_blank'>{token}</a></li>"
+
+    html_content += """
+        </ul>
+    </body>
+    </html>
+    """
+    return html_content
+
+# Ana fonksiyon
 if __name__ == "__main__":
     tokens = find_valid_tokens()
-    print("Bulunan Tokenler:")
-    for token in tokens:
-        print(f"Token Adresi: {token}")
-        # Her tokenin etherscan sayfasını aç
-        url = f"https://etherscan.io/token/{token}"
-        print(f"Açmak için şu sayfaya gidin: {url}")
-        # Sayfayı otomatik olarak açmak için:
-        webbrowser.open(url)
+    if tokens:
+        html_output = generate_html(tokens)
+        # HTML içeriğini bir dosyaya yaz
+        with open("valid_tokens.html", "w") as file:
+            file.write(html_output)
+        print("HTML dosyası başarıyla oluşturuldu: valid_tokens.html")
+    else:
+        print("Geçerli token bulunamadı.")
