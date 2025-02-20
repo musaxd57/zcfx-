@@ -1,5 +1,6 @@
 import requests
 import time
+import webbrowser
 
 # Etherscan API Anahtarını Buraya Gir
 ETHERSCAN_API_KEY = "YOUR_ETHERSCAN_API_KEY"
@@ -57,4 +58,9 @@ if __name__ == "__main__":
     tokens = find_valid_tokens()
     print("Bulunan Tokenler:")
     for token in tokens:
-        print(token)
+        print(f"Token Adresi: {token}")
+        # Her tokenin etherscan sayfasını aç
+        url = f"https://etherscan.io/token/{token}"
+        print(f"Açmak için şu sayfaya gidin: {url}")
+        # Sayfayı otomatik olarak açmak için:
+        webbrowser.open(url)
