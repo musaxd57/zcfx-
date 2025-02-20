@@ -1,0 +1,49 @@
+import requests
+import time
+
+# Etherscan API Anahtarını Buraya Gir
+ETHERSCAN_API_KEY = "YOUR_ETHERSCAN_API_KEY"
+BASE_URL = "https://api.etherscan.io/api"
+
+# Yeni oluşturulmuş tokenleri almak için fonksiyon
+def get_new_tokens():
+    url = f"{BASE_URL}?module=account&action=tokentx&address=0x0&startblock=latest&apikey={ETHERSCAN_API_KEY}"
+    response = requests.get(url).json()
+    return response.get("result", [])
+
+# Token sahiplerini kontrol eden fonksiyon
+def check_token_holders(token_address):
+    url = f"{BASE_URL}?module=token&action=tokenholderlist&contractaddress={token_address}&apikey={ETHERSCAN_API_KEY}"
+    response = requests.get(url).json()
+    holders = response.get("result", [])
+    
+    if not holders:
+        return False  # Holder bilgisi yoksa geç
+    
+    total_supply = sum(int(h["balance"]) for h in holders)
+    for holder in holders:
+        percentage = (int(holder["balance"]) / total_supply) * 100
+        if percentage > 15:
+            return False  # Eğer bir holder %15'ten fazlaysa bu tokeni geç
+    return True
+
+# Piyasaya çıkmamış ve uygun tokenleri listeleyen fonksiyon
+def find_valid_tokens():
+    valid_tokens = []
+    new_tokens = get_new_tokens()
+    
+    for token in new_tokens:
+        token_address = token["contractAddress"]
+        if check_token_holders(token_address):
+            valid_tokens.append(token_address)
+        
+        if len(valid_tokens) >= 15:
+            break  # 15 token bulunca dur
+        
+        time.sleep(1)  # API limiti aşmamak için bekleme
+    
+    return valid_tokens
+
+if __name__ == "__main__":
+    tokens = find_valid_tokens()
+    print("Bulunan Tokenler:", tokens)
