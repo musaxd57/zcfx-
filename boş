@@ -1,6 +1,7 @@
 import requests
 import time
 import webbrowser
+import os
 
 # Etherscan API Anahtarını Buraya Gir
 ETHERSCAN_API_KEY = "YOUR_ETHERSCAN_API_KEY"
@@ -13,7 +14,7 @@ def get_new_tokens():
     return response.get("result", [])
 
 # Token sahiplerini kontrol eden fonksiyon
-def check_token_holders(token_address):
+def check_token_holders(token_address, token_name):
     url = f"{BASE_URL}?module=token&action=tokenholderlist&contractaddress={token_address}&apikey={ETHERSCAN_API_KEY}"
     response = requests.get(url).json()
     holders = response.get("result", [])
@@ -24,8 +25,15 @@ def check_token_holders(token_address):
     total_supply = sum(int(h["balance"]) for h in holders)
     for holder in holders:
         percentage = (int(holder["balance"]) / total_supply) * 100
+        holder_name = holder.get("address", "").lower()
+
+        # Eğer token ismi veya etiketinde token adı geçiyorsa, %30'a kadar izin ver
+        if token_name.lower() in holder_name and percentage <= 30:
+            return True
+        # Eğer bir holder %15'ten fazlaysa bu tokeni geç
         if percentage > 15:
-            return False  # Eğer bir holder %15'ten fazlaysa bu tokeni geç
+            return False
+
     return True
 
 # Piyasaya çıkmamış ve uygun tokenleri listeleyen fonksiyon
@@ -35,7 +43,9 @@ def find_valid_tokens():
     
     for token in new_tokens:
         token_address = token["contractAddress"]
-        if check_token_holders(token_address):
+        token_name = token.get("tokenName", "")
+        
+        if check_token_holders(token_address, token_name):
             valid_tokens.append(token_address)
         
         if len(valid_tokens) >= 15:
@@ -45,20 +55,47 @@ def find_valid_tokens():
     
     return valid_tokens
 
-# Web sayfalarını açmak için güvenli alternatif
-def open_url_safe(url):
-    try:
-        webbrowser.open(url, new=2)  # 'new=2' parametresi yeni sekmede açılmasını sağlar
-    except Exception as e:
-        print(f"Bir hata oluştu: {e}")
+# HTML dosyasını oluşturmak için fonksiyon
+def generate_html(tokens):
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Valid Tokens List</title>
+    </head>
+    <body>
+        <h1>Valid Tokens</h1>
+        <ul>
+    """
+    for token in tokens:
+        html_content += f"<li><a href='https://etherscan.io/token/{token}' target='_blank'>{token}</a></li>"
 
+    html_content += """
+        </ul>
+    </body>
+    </html>
+    """
+    return html_content
+
+# Ana fonksiyon
 if __name__ == "__main__":
     tokens = find_valid_tokens()
-    print("Bulunan Tokenler:")
-    for token in tokens:
-        print(f"Token Adresi: {token}")
-        # Her tokenin etherscan sayfasını aç
-        url = f"https://etherscan.io/token/{token}"  # HTTPS bağlantısı burada kullanılıyor
-        print(f"Açmak için şu sayfaya gidin: {url}")
-        # Sayfayı güvenli bir şekilde açmak için:
-        open_url_safe(url)
+    if tokens:
+        html_output = generate_html(tokens)
+        # HTML içeriğini bir dosyaya yaz
+        html_file_path = "valid_tokens.html"  # Dosya yolu
+        with open(html_file_path, "w") as file:
+            file.write(html_output)
+        print(f"HTML dosyası başarıyla oluşturuldu: {html_file_path}")
+
+        # HTML dosyasını tarayıcıda aç
+        try:
+            # Dosyanın tam yolu ile açmaya çalışıyoruz
+            file_path = os.path.abspath(html_file_path)  # Dosya yolu alınır
+            webbrowser.open(f"file://{file_path}", new=2)  # Tarayıcıda açmak için dosya yolunu kullan
+        except Exception as e:
+            print(f"Bir hata oluştu: {e}")
+    else:
+        print("Geçerli token bulunamadı.")
