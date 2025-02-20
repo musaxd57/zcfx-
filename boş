@@ -55,4 +55,6 @@ def find_valid_tokens():
 
 if __name__ == "__main__":
     tokens = find_valid_tokens()
-    print("Bulunan Tokenler:", tokens)
+    print("Bulunan Tokenler:")
+    for token in tokens:
+        print(token)
